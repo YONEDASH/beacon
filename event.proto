@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package beacon;
+option go_package = "internal/protoc";
+
+
+import "google/protobuf/timestamp.proto";
+
+service EventService {
+  rpc SubmitEvent (SubmitEventRequest) returns (SubmitEventResponse);
+}
+
+message SubmitEventRequest {
+  string event_name = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  string data = 3;
+}
+
+message SubmitEventResponse {
+  bool success = 1;
+}

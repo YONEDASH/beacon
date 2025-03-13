@@ -1,36 +1,46 @@
 package beacon_test
 
 import (
-	"net/http"
+	"net"
 	"testing"
 
 	"github.com/yonedash/beacon"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-func TestHttpRemote(t *testing.T) {
-	listenProtocol := "http://"
-	listenAddr := "127.0.0.1:8941"
-	listenPath := "/remote-test"
+func TestRemote(t *testing.T) {
+	addr := "127.0.0.1:8941"
 
-	client := http.DefaultClient
+	lis, err := net.Listen("tcp", addr)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	showSender := beacon.New(beacon.WithHttpRemote(client, listenProtocol+listenAddr+listenPath))
-	showListener := beacon.New()
+	s := grpc.NewServer()
+	receiver := beacon.New()
+	beacon.RegisterEventService(s, receiver)
 
-	// Start http server
-	mux := http.NewServeMux()
-	mux.HandleFunc(listenPath, beacon.ReceiveEventHandler(showListener))
+	go func() {
+		if err := s.Serve(lis); err != nil {
+			t.Fatal(err)
+		}
+	}()
 
-	go http.ListenAndServe(listenAddr, mux)
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sender := beacon.New(beacon.WithRemote(conn))
 
 	message := ""
 	handler := func(e beacon.Event) error {
 		message = e.Data.(string)
 		return nil
 	}
-	showListener.Subscribe("test", handler)
+	receiver.Subscribe("test", handler)
 
-	if err := showSender.Submit("test", "hello world"); err != nil {
+	if err := sender.Submit("test", "hello world"); err != nil {
 		t.Fatal(err)
 	}
 

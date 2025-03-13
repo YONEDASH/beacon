@@ -1,11 +1,11 @@
 # Beacon
 
-Beacon is a lightweight event handling engine for Go, designed to manage event handlers in a context-aware manner. It supports both local event handling and remote event submission via HTTP.
+Beacon is a lightweight event handling engine for Go, designed to manage event handlers in a context-aware manner. It supports both local event handling and remote event submission via gRPC.
 
 ## Features
 
 - Context-aware event handling
-- Support for remote event submission
+- Support for remote event submission via gRPC
 - Easy-to-use API for subscribing and submitting events
 - Functional options for configuration
 
@@ -47,29 +47,86 @@ if err != nil {
 
 ### Remote Event Submission
 
-To configure the engine to send events to a remote server, use the `WithHttpRemote` option:
+Beacon supports submitting events to a remote server using gRPC. This is useful for distributed systems where events need to be processed by a central server.
+
+#### Setting Up the Remote Server
+
+First, you need to set up a gRPC server that can receive events. Use the `RegisterEventService` function to register the event service with your gRPC server:
 
 ```go
-client := &http.Client{}
-url := "http://remote-server.com/events"
+import (
+    "net"
+    "google.golang.org/grpc"
+    "github.com/yonedash/beacon"
+)
 
-engine := beacon.New(beacon.WithHttpRemote(client, url))
+func main() {
+    addr := "127.0.0.1:8941"
+    lis, err := net.Listen("tcp", addr)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    s := grpc.NewServer()
+    engine := beacon.New()
+    beacon.RegisterEventService(s, engine)
+
+    if err := s.Serve(lis); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+#### Submitting Events to the Remote Server
+
+To submit events to the remote server, create a gRPC client connection and configure the engine to use it:
+
+```go
+import (
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
+    "github.com/yonedash/beacon"
+)
+
+func main() {
+    conn, err := grpc.Dial("127.0.0.1:8941", grpc.WithTransportCredentials(insecure.NewCredentials()))
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer conn.Close()
+
+    engine := beacon.New(beacon.WithRemote(conn))
+
+    err = engine.Submit("event_name", eventData)
+    if err != nil {
+        // Handle error
+    }
+}
 ```
 
 ### Receiving Remote Events
 
-To receive events from a remote source, use the `ReceiveEventHandler` function:
+To handle events received from a remote client, you need to subscribe to the events on the server side. The server will automatically call the appropriate handlers when events are received.
+
+#### Subscribing to Events on the Server
 
 ```go
 import (
-    "net/http"
     "github.com/yonedash/beacon"
 )
 
-engine := beacon.New()
+func main() {
+    engine := beacon.New()
 
-mux := http.NewServeMux()
-mux.HandleFunc("/events", beacon.ReceiveEventHandler(engine))
+    handler := func(event beacon.Event) error {
+        // Handle the event
+        return nil
+    }
 
-http.ListenAndServe(":8080", mux)
+    engine.Subscribe("event_name", handler)
+
+    // Set up and start the gRPC server as shown in the previous section
+}
 ```
+
+When a remote client submits an event, the server will deserialize the event data and call the subscribed handlers.
