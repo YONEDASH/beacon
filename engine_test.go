@@ -1,8 +1,10 @@
 package beacon_test
 
 import (
+	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/yonedash/beacon"
 )
@@ -89,5 +91,42 @@ func TestSubmitIncorrectEventName(t *testing.T) {
 
 	if fail {
 		t.Error("handler was called")
+	}
+}
+
+func TestEventCancel(t *testing.T) {
+	counter := 0
+
+	engine := beacon.New()
+	engine.Subscribe("test", func(e beacon.Event) error {
+		counter++
+		e.Cancel()
+		return nil
+	})
+	engine.Subscribe("test", func(e beacon.Event) error {
+		counter++
+		return nil
+	})
+	engine.Submit("test", nil)
+
+	if counter == 2 {
+		t.Error("handler was not cancelled and second handler was called")
+	} else if counter != 1 {
+		t.Error("no handler was called")
+	}
+}
+
+func TestContextTimeout(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer cancel()
+
+	engine := beacon.New()
+	engine.Subscribe("test", func(e beacon.Event) error {
+		<-e.Context.Done()
+		return nil
+	})
+
+	if err := engine.SubmitWithContext(ctx, "test", nil); err != context.DeadlineExceeded {
+		t.Error("context error not received")
 	}
 }

@@ -11,9 +11,17 @@ import (
 
 // Event represents a data structure that is passed to event handlers.
 type Event struct {
-	Context   context.Context `json:"-"`
-	Timestamp time.Time       `json:"timestamp"`
-	Data      any             `json:"data"`
+	Context   context.Context
+	Timestamp time.Time
+	Data      any
+	canceled  *bool
+}
+
+// Cancel stops propagation of the event to further handlers.
+func (e Event) Cancel() {
+	if e.canceled != nil {
+		*e.canceled = true
+	}
 }
 
 // newEvent creates an Event instance with the given context and data.
@@ -94,19 +102,40 @@ func (s *Engine) SubmitWithContext(ctx context.Context, eventName string, data a
 		}
 	}
 
-	return s.fireEvent(eventName, event)
+	result := make(chan error)
+	go func() {
+		result <- s.fireEvent(eventName, event)
+	}()
+
+	select {
+	case <-event.Context.Done():
+		return event.Context.Err() // Respect cancelation or timeout
+	case err := <-result:
+		return err
+	}
 }
 
 // fireEvent executes all registered handlers for a specific event.
 func (s *Engine) fireEvent(eventName string, event Event) error {
-	for _, handle := range s.handlers[eventName] {
+	handlers, ok := s.handlers[eventName]
+	if !ok {
+		return nil
+	}
+
+	event.canceled = new(bool)
+
+	for _, handle := range handlers {
+		if err := handle(event); err != nil {
+			return err
+		}
+		if *event.canceled {
+			return nil
+		}
 		select {
 		case <-event.Context.Done():
-			return event.Context.Err() // Respect cancellation or timeout
+			return event.Context.Err()
 		default:
-			if err := handle(event); err != nil {
-				return err
-			}
+			// Continue to the next handler if the context is not done
 		}
 	}
 	return nil
