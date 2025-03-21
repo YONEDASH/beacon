@@ -153,10 +153,10 @@ handler := func(e beacon.TypedEvent[CustomData]) error {
 }
 
 engine := beacon.New()
-engine.Subscribe("custom_event", beacon.Wrap(handler))
+engine.Subscribe(beacon.Wrap(handler))
 
 data := CustomData{Value: "test"}
-if err := engine.Submit("custom_event", data); err != nil {
+if err := engine.Submit(beacon.Typed(data)); err != nil {
     // Handle error
 }
 ```

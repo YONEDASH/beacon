@@ -19,10 +19,10 @@ func TestWrappedEvent(t *testing.T) {
 	}
 
 	engine := beacon.New()
-	engine.Subscribe("custom_event", beacon.Wrap(handler))
+	engine.Subscribe(beacon.Wrap(handler))
 
 	data := CustomData{Value: "test"}
-	if err := engine.Submit("custom_event", data); err != nil {
+	if err := engine.Submit(beacon.Typed(data)); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -37,7 +37,8 @@ func TestWrappedEventIncorrectType(t *testing.T) {
 	}
 
 	engine := beacon.New()
-	engine.Subscribe("custom_event", beacon.Wrap(handler))
+	_, wrappedHandler := beacon.Wrap(handler)
+	engine.Subscribe("custom_event", wrappedHandler)
 
 	// Submitting data of incorrect type
 	if err := engine.Submit("custom_event", "incorrect type"); err == nil {
