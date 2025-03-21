@@ -3,8 +3,8 @@ package beacon
 import (
 	"context"
 
+	protoc "github.com/YONEDASH/beacon/internal/protoc"
 	"github.com/bytedance/sonic"
-	protoc "github.com/yonedash/beacon/internal/protoc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

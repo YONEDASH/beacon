@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/yonedash/beacon"
+	"github.com/YONEDASH/beacon"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

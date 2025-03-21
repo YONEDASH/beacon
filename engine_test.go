@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yonedash/beacon"
+	"github.com/YONEDASH/beacon"
 )
 
 func TestSubscribe(t *testing.T) {

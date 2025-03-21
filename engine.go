@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	protoc "github.com/yonedash/beacon/internal/protoc"
+	protoc "github.com/YONEDASH/beacon/internal/protoc"
 	"google.golang.org/grpc"
 )
 

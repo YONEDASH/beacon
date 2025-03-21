@@ -1,4 +1,4 @@
-module github.com/yonedash/beacon
+module github.com/YONEDASH/beacon
 
 go 1.24.1
 

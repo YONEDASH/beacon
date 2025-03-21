@@ -3,7 +3,7 @@ package beacon_test
 import (
 	"testing"
 
-	"github.com/yonedash/beacon"
+	"github.com/YONEDASH/beacon"
 )
 
 func TestWrappedEvent(t *testing.T) {
