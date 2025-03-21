@@ -8,6 +8,7 @@ Beacon is a lightweight event handling engine for Go, designed to manage event h
 - Support for remote event submission via gRPC
 - Easy-to-use API for subscribing and submitting events
 - Functional options for configuration
+- Optional use of generics for type-safe event handling
 
 ## Usage
 
@@ -130,3 +131,32 @@ func main() {
 ```
 
 When a remote client submits an event, the server will deserialize the event data and call the subscribed handlers.
+
+### Optional Use of Generics
+
+Beacon also supports the optional use of generics for type-safe event handling. This can be useful for ensuring that event handlers receive the expected data type. However, using generics is **optional**.
+
+#### Using Generics with Events
+
+To use generics with events, you can wrap your handler using the `Wrap` function and `TypedEvent` type:
+
+```go
+type CustomData struct {
+    Value string
+}
+
+handler := func(e beacon.TypedEvent[CustomData]) error {
+    if e.Data.Value != "test" {
+        t.Errorf("expected 'test', got '%s'", e.Data.Value)
+    }
+    return nil
+}
+
+engine := beacon.New()
+engine.Subscribe("custom_event", beacon.Wrap(handler))
+
+data := CustomData{Value: "test"}
+if err := engine.Submit("custom_event", data); err != nil {
+    // Handle error
+}
+```
