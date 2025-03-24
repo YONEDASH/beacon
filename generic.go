@@ -5,33 +5,32 @@ import (
 	"reflect"
 )
 
+// EventName returns the generic event name for a given data type.
+func EventName(v any) string {
+	t := reflect.TypeOf(v)
+	if t.PkgPath() == "" { // PkgPath() is empty for built-in types
+		return t.Name()
+	}
+	return fmt.Sprintf("event.%s.%s", t.PkgPath(), t.Name())
+}
+
+// AsEvent returns the generic event name and data.
+// Usage: engine.Submit(beacon.AsEvent(data))
+func AsEvent(data any) (string, any) {
+	return EventName(data), data
+}
+
 // TypedHandler is a handler that expects a specific data type.
-type TypedHandler[T any] func(TypedEvent[T]) error
-
-// TypedEvent is an event that contains a specific data type.
-type TypedEvent[T any] struct {
-	Event
-	Data T
-}
-
-func genericEventNameOf(v any) string {
-	return fmt.Sprintf("type_%s", reflect.TypeOf(v).Name())
-}
-
-// Typed returns the generic event name and data.
-// Usage: engine.Submit(beacon.Typed(data))
-func Typed(data any) (string, any) {
-	return genericEventNameOf(data), data
-}
+type TypedHandler[T any] func(T) error
 
 // Wrap wraps a handler that expects a specific data type.
 func Wrap[T any](handler TypedHandler[T]) (string, Handler) {
-	var v T
-	return genericEventNameOf(v), func(e Event) error {
-		v, ok := e.Data.(T)
+	var empty T
+	return EventName(empty), func(e Event) error {
+		value, ok := e.Data.(T)
 		if !ok {
-			return fmt.Errorf("unexpected data type in wrapped handler: %T", e.Data)
+			return fmt.Errorf("unexpected data type in wrapped TypedHandler[%T]: %T", empty, e.Data)
 		}
-		return handler(TypedEvent[T]{Event: e, Data: v})
+		return handler(value)
 	}
 }
