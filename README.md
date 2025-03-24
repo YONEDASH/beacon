@@ -17,7 +17,7 @@ Beacon is a lightweight event handling engine for Go, designed to manage event h
 To create a new event handling engine, use the `New` function:
 
 ```go
-import "github.com/yonedash/beacon"
+import "github.com/YONEDASH/beacon"
 
 engine := beacon.New()
 ```
@@ -58,7 +58,7 @@ First, you need to set up a gRPC server that can receive events. Use the `Regist
 import (
     "net"
     "google.golang.org/grpc"
-    "github.com/yonedash/beacon"
+    "github.com/YONEDASH/beacon"
 )
 
 func main() {
@@ -86,7 +86,7 @@ To submit events to the remote server, create a gRPC client connection and confi
 import (
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
-    "github.com/yonedash/beacon"
+    "github.com/YONEDASH/beacon"
 )
 
 func main() {
@@ -113,7 +113,7 @@ To handle events received from a remote client, you need to subscribe to the eve
 
 ```go
 import (
-    "github.com/yonedash/beacon"
+    "github.com/YONEDASH/beacon"
 )
 
 func main() {
@@ -134,29 +134,43 @@ When a remote client submits an event, the server will deserialize the event dat
 
 ### Optional Use of Generics
 
-Beacon also supports the optional use of generics for type-safe event handling. This can be useful for ensuring that event handlers receive the expected data type. However, using generics is **optional**.
+Beacon supports the optional use of generics for type-safe event handling. This can be useful for ensuring that event handlers receive the expected data type. However, using generics is **optional**.
 
 #### Using Generics with Events
 
-To use generics with events, you can wrap your handler using the `Wrap` function and `TypedEvent` type:
+To use generics with events, you can wrap your handler using the `Wrap` function and `TypedHandler` type. This ensures that the event handler receives the expected data type.
+
+##### Defining a Typed Handler
+
+First, define a handler function that expects a specific data type:
 
 ```go
 type CustomData struct {
     Value string
 }
 
-handler := func(e beacon.TypedEvent[CustomData]) error {
-    if e.Data.Value != "test" {
-        t.Errorf("expected 'test', got '%s'", e.Data.Value)
-    }
+handler := func(e CustomData) error {
+    fmt.Println(e.Value)
     return nil
 }
+```
 
+##### Subscribing to Typed Events
+
+Next, subscribe to the event using the `Wrap` function to wrap your typed handler:
+
+```go
 engine := beacon.New()
 engine.Subscribe(beacon.Wrap(handler))
+```
 
+##### Submitting Typed Events
+
+When submitting events, use the `AsEvent` function to ensure the event is submitted with the correct type information:
+
+```go
 data := CustomData{Value: "test"}
-if err := engine.Submit(beacon.Typed(data)); err != nil {
+if err := engine.Submit(beacon.AsEvent(data)); err != nil {
     // Handle error
 }
 ```
